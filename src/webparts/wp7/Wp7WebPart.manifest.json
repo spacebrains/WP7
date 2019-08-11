@@ -19,7 +19,7 @@
     "group": { "default": "Other" },
     "title": { "default": "WP7" },
     "description": { "default": "Task for WM_reply" },
-    "officeFabricIconFontName": "Page",
+    "officeFabricIconFontName": "CheckboxFill",
     "properties": {
       "description": "WP7"
     }

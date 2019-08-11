@@ -1,11 +1,12 @@
 import * as React from 'react';
-import styles from './Wp7.module.scss';
 import * as strings from 'Wp7WebPartStrings';
 import { escape } from '@microsoft/sp-lodash-subset';
+import ILoadItems from './interfaces/ILoadItems';
+import { Spinner } from 'office-ui-fabric-react/lib/Spinner';
+import { IDropdownOption } from "office-ui-fabric-react/lib/Dropdown";
 import List from "./List/List";
 import WarningBlock from './WarningBlock/WarningBlock';
-import { Spinner } from 'office-ui-fabric-react/lib/Spinner';
-import ILoadItems from './interfaces/IloadItems';
+
 
 export interface IItems {
     Title: string;
@@ -19,17 +20,21 @@ export interface IWp7Props {
 
 interface IState {
     window: 'List' | 'Warning' | 'Spinner';
-    warningMassege: string;
+    warningMessage: string;
     items: Array<IItems>;
+    terms: Array<IDropdownOption>;
 }
 
 
 
 export default class Wp7 extends React.Component<IWp7Props, {}> {
+    private termSetId = 'bd90f94f-896b-4cfa-92dc-668a8f9f58de';
+
     public state: IState = {
         window: 'Warning',
-        warningMassege: strings.MainMassege,
-        items: []
+        warningMessage: strings.MainMessage,
+        items: [],
+        terms: []
     };
 
     constructor(props) {
@@ -45,55 +50,102 @@ export default class Wp7 extends React.Component<IWp7Props, {}> {
 
 
     private checkData = () => {
-        console.log(this.props.list);
-        if (this.props.list && this.props.list != '') {
-            this.setState({ ...this.state, window: 'Spinner' });
-            this.loadItems();
+        if (this.props.list && this.props.list.replace(/\s/g, '') !== '') {
+            this.setState({ ...this.state, window: 'Spinner' }, this.getItems);
         }
-        else if (this.props.list && this.props.list === '') {
-            this.setState({ ...this.state, window: 'Warning', warningMassege: strings.MainMassege });
+        else {
+            this.setState({ ...this.state, window: 'Warning', warningMessage: strings.MainMessage });
         }
     }
 
+    private loadItems = async (url) => {
+        const siteUrl = this.props.siteUrl;
 
-    private loadItems = async () => {
+        const SP = (await import("@pnp/sp"));
+        const WEB = new SP.Web(siteUrl, url);
+
+        const response: ILoadItems = await WEB.get();
+        const resultRows = response.PrimaryQueryResult.RelevantResults.Table.Rows;
+        const resultRowsWithTerms = resultRows.filter(rows => rows.Cells.find(obj => obj.Key === 'RefinableString51').Value);
+
+        return resultRowsWithTerms;
+    }
+
+    private getItems = async () => {
         try {
-            const { siteUrl, list } = this.props;
+            const { list } = this.props;
             const url = `_api/search/query?querytext='${escape(list)}'&rowsperpage=0&rowlimit=25&selectproperties='RefinableString50%2cRefinableString51%2cTitle'&clienttype='ContentSearchRegular'`;
 
-            const SP = (await import("@pnp/sp"));
-            const WEB = new SP.Web(siteUrl, url);
+            const resultRowsWithTerms = await this.loadItems(url);
 
-            const response: ILoadItems = await WEB.get();
-            const resultRows = response.PrimaryQueryResult.RelevantResults.Table.Rows;
-            const resultRowsWithTerms = resultRows.filter(rows => rows.Cells.find(obj => obj.Key === 'RefinableString51').Value);
-            if (resultRowsWithTerms.length === 0) {
-                this.setState({ ...this.state, window: 'Warning', warningMassege: strings.ResultNotFound });
-                return null;
+            if (resultRowsWithTerms && resultRowsWithTerms.length === 0) {
+                this.setState({ ...this.state, window: 'Warning', warningMessage: strings.ResultNotFound });
+                console.log('notFound', this.state);
             }
 
-            const items = resultRowsWithTerms.map(rows => {
-                const Title = rows.Cells.find(obj => obj.Key === 'Title').Value;
-                const color = rows.Cells.find(obj => obj.Key === 'RefinableString50').Value;
-                return { Title, color };
-            });
+            else {
+                let terms: Array<IDropdownOption> = [];
+                const items = resultRowsWithTerms.map(rows => {
+                    const Title = rows.Cells.find(obj => obj.Key === 'Title').Value;
+                    const color = rows.Cells.find(obj => obj.Key === 'RefinableString50').Value;
+                    if (!terms.find(t => t.key === color))
+                        terms = [...terms, { text: color, key: color }];
 
-            console.log(items);
-            this.setState({ ...this.state, items: items, window: 'List' });
+                    return { Title, color };
+                });
+
+                this.setState({ ...this.state, items: items, terms: terms, window: 'List' });
+            }
         }
         catch (err) {
             console.error('loadItems', err);
-            this.setState({ ...this.state, window: 'Warning', warningMassege: err });
-
+            this.setState({ ...this.state, window: 'Warning', warningMessage: err });
         }
     }
+
+    public filterItems = async (newSearchTerms: string) => {
+        try {
+            const url = `_api/search/query?querytext='GTSet|%23${this.termSetId}'&rowsperpage=0&rowlimit=10&selectproperties='RefinableString50%2c+RefinableString51%2cTitle'&refiners='RefinableString50%2cRefinableString51'&refinementfilters='RefinableString50:equals("${newSearchTerms}")'&clienttype='ContentSearchRegular'`;
+
+            const resultRowsWithTerms = await this.loadItems(url);
+
+            if (resultRowsWithTerms && resultRowsWithTerms.length === 0)
+                this.setState({ ...this.state, window: 'Warning', warningMessage: strings.ResultNotFound });
+
+            else {
+                const items = resultRowsWithTerms.map(rows => {
+                    const Title = rows.Cells.find(obj => obj.Key === 'Title').Value;
+                    const color = rows.Cells.find(obj => obj.Key === 'RefinableString50').Value;
+
+                    return { Title, color };
+                });
+
+                this.setState({ ...this.state, items: items, window: 'List' });
+            }
+        }
+        catch (err) {
+            console.error('loadItems', err);
+            this.setState({ ...this.state, window: 'Warning', warningMessage: err });
+        }
+    }
+
+    public setSearchTerms = (newSearchTerms: string) => {
+        this.filterItems(newSearchTerms);
+    }
+
 
     private switchWindow = () => {
         switch (this.state.window) {
             case 'List':
-                return <List items={this.state.items} />;
+                return (
+                    <List
+                        items={this.state.items}
+                        terms={this.state.terms}
+                        setSearchTerms={this.setSearchTerms}
+                    />
+                );
             case 'Warning':
-                return <WarningBlock massege={this.state.warningMassege} />;
+                return <WarningBlock massege={this.state.warningMessage} />;
             case 'Spinner':
                 return <Spinner />;
         }

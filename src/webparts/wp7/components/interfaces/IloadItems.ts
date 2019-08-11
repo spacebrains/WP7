@@ -1,4 +1,4 @@
-//JSON2Ts
+//JSON2TS
 export default interface ILoadItems {
   'odata.metadata': string;
   ElapsedTime: number;

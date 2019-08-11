@@ -7,7 +7,7 @@ interface IWarningBlockProps{
 
 const WarningBlock: React.FC<IWarningBlockProps> = ({massege}:IWarningBlockProps) =>
   (<div className={styles.WarningBlock}>
-    <h1>{massege}</h1>
+    <span>{massege}</span>
   </div>
   );
 

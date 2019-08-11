@@ -41,11 +41,11 @@ export default class Wp7WebPart extends BaseClientSideWebPart<IWp7WebPartProps> 
 
 
   public render(): void {
-    const element: React.ReactElement<IWp7Props > = React.createElement(
+    const element: React.ReactElement<IWp7Props> = React.createElement(
       Wp7,
       {
         list: this.properties.list,
-        siteUrl:'https://mastond.sharepoint.com/',
+        siteUrl: 'https://mastond.sharepoint.com/',
       }
     );
 
