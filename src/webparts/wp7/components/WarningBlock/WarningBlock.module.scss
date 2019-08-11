@@ -1,0 +1,12 @@
+@import '~@microsoft/sp-office-ui-fabric-core/dist/sass/SPFabricCore.scss';
+
+.WarningBlock{
+    display:flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 200px;
+
+    background-color:$ms-color-themePrimary;
+    color:$ms-color-white;
+    font-size: 12px;
+}

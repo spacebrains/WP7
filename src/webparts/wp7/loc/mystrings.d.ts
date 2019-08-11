@@ -1,7 +1,10 @@
 declare interface IWp7WebPartStrings {
   PropertyPaneDescription: string;
-  BasicGroupName: string;
-  DescriptionFieldLabel: string;
+  DescriptionListsFieldLabel:string;
+  ListNotSelected:string;
+  ListNotFound:string;
+  MainMassege:string;
+  ResultNotFound:string;
 }
 
 declare module 'Wp7WebPartStrings' {
