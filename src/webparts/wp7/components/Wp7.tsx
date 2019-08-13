@@ -1,8 +1,7 @@
 import * as React from 'react';
 import * as strings from 'Wp7WebPartStrings';
 import { escape } from '@microsoft/sp-lodash-subset';
-import ILoadItems from './interfaces/ILoadItems';
-import { Spinner } from 'office-ui-fabric-react/lib/Spinner';
+import Spinner from './Spinner/Spinner';
 import { IDropdownOption } from "office-ui-fabric-react/lib/Dropdown";
 import List from "./List/List";
 import WarningBlock from './WarningBlock/WarningBlock';
@@ -19,10 +18,12 @@ export interface IWp7Props {
 }
 
 interface IState {
-    window: 'List' | 'Warning' | 'Spinner';
+    window: 'List' | 'Warning';
+    isLoading: boolean;
     warningMessage: string;
     items: Array<IItems>;
     terms: Array<IDropdownOption>;
+    filterСondition: string;
 }
 
 
@@ -32,16 +33,17 @@ export default class Wp7 extends React.Component<IWp7Props, {}> {
 
     public state: IState = {
         window: 'Warning',
-        warningMessage: strings.MainMessage,
+        warningMessage: 'Wait, pleast :3',
+        isLoading: true,
         items: [],
-        terms: []
+        terms: [],
+        filterСondition: strings.ShowAll
     };
 
-    constructor(props) {
-        super(props);
+
+    public componentDidMount(): void {
         this.checkData();
     }
-
 
     public componentDidUpdate(prevProps: Readonly<IWp7Props>): void {
         if (this.props !== prevProps)
@@ -49,22 +51,21 @@ export default class Wp7 extends React.Component<IWp7Props, {}> {
     }
 
 
-    private checkData = () => {
+    private checkData = async () => {
         if (this.props.list && this.props.list.replace(/\s/g, '') !== '') {
-            this.setState({ ...this.state, window: 'Spinner' }, this.getItems);
+            this.setState({ ...this.state, isLoading: true });
+            this.getItems();
         }
         else {
-            this.setState({ ...this.state, window: 'Warning', warningMessage: strings.MainMessage });
+            this.setState({ ...this.state, window: 'Warning', warningMessage: strings.MainMessage, isLoading: false });
         }
     }
 
-    private loadItems = async (url) => {
+    private _loadItems = async (url:string) => {
         const siteUrl = this.props.siteUrl;
-
         const SP = (await import("@pnp/sp"));
         const WEB = new SP.Web(siteUrl, url);
-
-        const response: ILoadItems = await WEB.get();
+        const response = await WEB.get();
         const resultRows = response.PrimaryQueryResult.RelevantResults.Table.Rows;
         const resultRowsWithTerms = resultRows.filter(rows => rows.Cells.find(obj => obj.Key === 'RefinableString51').Value);
 
@@ -74,13 +75,12 @@ export default class Wp7 extends React.Component<IWp7Props, {}> {
     private getItems = async () => {
         try {
             const { list } = this.props;
-            const url = `_api/search/query?querytext='${escape(list)}'&rowsperpage=0&rowlimit=25&selectproperties='RefinableString50%2cRefinableString51%2cTitle'&clienttype='ContentSearchRegular'`;
+            const url = `_api/search/query?querytext='${escape(list)}'&rowsperpage=0&selectproperties='RefinableString50%2cRefinableString51%2cTitle'&clienttype='ContentSearchRegular'`;
 
-            const resultRowsWithTerms = await this.loadItems(url);
+            const resultRowsWithTerms = await this._loadItems(url);
 
             if (resultRowsWithTerms && resultRowsWithTerms.length === 0) {
-                this.setState({ ...this.state, window: 'Warning', warningMessage: strings.ResultNotFound });
-                console.log('notFound', this.state);
+                this.setState({ ...this.state, window: 'Warning', warningMessage: strings.ResultNotFound, isLoading: false });
             }
 
             else {
@@ -94,23 +94,35 @@ export default class Wp7 extends React.Component<IWp7Props, {}> {
                     return { Title, color };
                 });
 
-                this.setState({ ...this.state, items: items, terms: terms, window: 'List' });
+                this.setState({
+                    ...this.state,
+                    items: items,
+                    terms: terms,
+                    window: 'List',
+                    filterСondition: strings.ShowAll,
+                    isLoading: false
+                });
             }
         }
+
         catch (err) {
-            console.error('loadItems', err);
-            this.setState({ ...this.state, window: 'Warning', warningMessage: err });
+            console.error('getItems', err.Error);
+            this.setState({
+                ...this.state,
+                window: 'Warning',
+                warningMessage: err.message,
+                isLoading: false
+            });
         }
     }
 
     public filterItems = async (newSearchTerms: string) => {
         try {
-            const url = `_api/search/query?querytext='GTSet|%23${this.termSetId}'&rowsperpage=0&rowlimit=10&selectproperties='RefinableString50%2c+RefinableString51%2cTitle'&refiners='RefinableString50%2cRefinableString51'&refinementfilters='RefinableString50:equals("${newSearchTerms}")'&clienttype='ContentSearchRegular'`;
+            const url = `_api/search/query?querytext='GTSet|%23${this.termSetId}'&rowsperpage=0&selectproperties='RefinableString50%2c+RefinableString51%2cTitle'&refiners='RefinableString50%2cRefinableString51'&refinementfilters='RefinableString50:equals("${newSearchTerms}")'&clienttype='ContentSearchRegular'`;
 
-            const resultRowsWithTerms = await this.loadItems(url);
-
+            const resultRowsWithTerms = await this._loadItems(url);
             if (resultRowsWithTerms && resultRowsWithTerms.length === 0)
-                this.setState({ ...this.state, window: 'Warning', warningMessage: strings.ResultNotFound });
+                this.setState({ ...this.state, window: 'Warning', warningMessage: strings.ResultNotFound, isLoading: false });
 
             else {
                 const items = resultRowsWithTerms.map(rows => {
@@ -120,35 +132,60 @@ export default class Wp7 extends React.Component<IWp7Props, {}> {
                     return { Title, color };
                 });
 
-                this.setState({ ...this.state, items: items, window: 'List' });
+                this.setState({
+                    ...this.state,
+                    items: items,
+                    window: 'List',
+                    filterСondition: newSearchTerms,
+                    isLoading: false
+                });
             }
         }
+
         catch (err) {
-            console.error('loadItems', err);
-            this.setState({ ...this.state, window: 'Warning', warningMessage: err });
+            console.error("filterItems",err);
+            this.setState({
+                ...this.state,
+                window: 'Warning',
+                warningMessage: err.message,
+                isLoading: false
+            });
         }
     }
 
-    public setSearchTerms = (newSearchTerms: string) => {
-        this.filterItems(newSearchTerms);
+    public setFilter = (newFilterCondition: string): void => {
+        if (newFilterCondition === this.state.filterСondition)
+            return;
+
+        this.setState({ ...this.state, isLoading: true });
+        if (newFilterCondition === strings.ShowAll) {
+            this.getItems();
+        }
+        else
+            this.filterItems(newFilterCondition);
     }
 
 
     private switchWindow = () => {
+        let component: JSX.Element;
+
         switch (this.state.window) {
             case 'List':
-                return (
+                component = (
                     <List
                         items={this.state.items}
                         terms={this.state.terms}
-                        setSearchTerms={this.setSearchTerms}
+                        setFilter={this.setFilter}
+                        filterСondition={this.state.filterСondition}
                     />
                 );
+                break;
             case 'Warning':
-                return <WarningBlock massege={this.state.warningMessage} />;
-            case 'Spinner':
-                return <Spinner />;
+                component = <WarningBlock massege={this.state.warningMessage} />;
+                break;
         }
+
+        return this.state.isLoading ? <><Spinner /> {component}</> : component;
     }
 
     public render(): React.ReactElement<IWp7Props> {

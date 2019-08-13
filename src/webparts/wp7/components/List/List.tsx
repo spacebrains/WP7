@@ -8,20 +8,26 @@ import { DetailsList, Dropdown, IDropdownOption } from "office-ui-fabric-react";
 interface IListProps {
   items: Array<IItems>;
   terms: Array<IDropdownOption>;
-  setSearchTerms: Function;
+  setFilter: Function;
+  filterСondition:string;
 }
 
 
-const List: React.FC<IListProps> = ({ items, terms, setSearchTerms }: IListProps) => {
-
+const List: React.FC<IListProps> = ({ items, terms, setFilter, filterСondition }: IListProps) => {
+  const options=[{ key: strings.ShowAll, text: strings.ShowAll }, ...terms];
   return (
     <>
       {(items && items.length > 0) ?
         <div>
-          <Dropdown label={strings.FilterByTerm} options={terms} onChanged={(e) => setSearchTerms(e.text)} />
+          <Dropdown
+            label={strings.FilterByTerm}
+            defaultSelectedKey={filterСondition}
+            options={options}
+            onChanged={(e) => setFilter(e.key)}
+          />
           <DetailsList items={items} />
         </div>
-        : <div>list is empty</div>}
+        : <div>{strings.listEmpty}</div>}
     </>
   );
 };

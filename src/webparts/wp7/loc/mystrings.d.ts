@@ -4,6 +4,8 @@ declare interface IWp7WebPartStrings {
   MainMessage:string;
   ResultNotFound:string;
   FilterByTerm:string;
+  ShowAll:string;
+  listEmpty:string;
 }
 
 declare module 'Wp7WebPartStrings' {
