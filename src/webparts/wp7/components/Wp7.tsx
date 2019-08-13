@@ -33,7 +33,7 @@ export default class Wp7 extends React.Component<IWp7Props, {}> {
 
     public state: IState = {
         window: 'Warning',
-        warningMessage: 'Wait, pleast :3',
+        warningMessage: strings.WaitPlease,
         isLoading: true,
         items: [],
         terms: [],
@@ -51,7 +51,7 @@ export default class Wp7 extends React.Component<IWp7Props, {}> {
     }
 
 
-    private checkData = async () => {
+    private checkData = async ():Promise<void> => {
         if (this.props.list && this.props.list.replace(/\s/g, '') !== '') {
             this.setState({ ...this.state, isLoading: true });
             this.getItems();
@@ -72,7 +72,7 @@ export default class Wp7 extends React.Component<IWp7Props, {}> {
         return resultRowsWithTerms;
     }
 
-    private getItems = async () => {
+    private getItems = async ():Promise<void> => {
         try {
             const { list } = this.props;
             const url = `_api/search/query?querytext='${escape(list)}'&rowsperpage=0&selectproperties='RefinableString50%2cRefinableString51%2cTitle'&clienttype='ContentSearchRegular'`;
@@ -116,7 +116,7 @@ export default class Wp7 extends React.Component<IWp7Props, {}> {
         }
     }
 
-    public filterItems = async (newSearchTerms: string) => {
+    public filterItems = async (newSearchTerms: string):Promise<void> => {
         try {
             const url = `_api/search/query?querytext='GTSet|%23${this.termSetId}'&rowsperpage=0&selectproperties='RefinableString50%2c+RefinableString51%2cTitle'&refiners='RefinableString50%2cRefinableString51'&refinementfilters='RefinableString50:equals("${newSearchTerms}")'&clienttype='ContentSearchRegular'`;
 
@@ -166,7 +166,7 @@ export default class Wp7 extends React.Component<IWp7Props, {}> {
     }
 
 
-    private switchWindow = () => {
+    private switchWindow = ():JSX.Element => {
         let component: JSX.Element;
 
         switch (this.state.window) {

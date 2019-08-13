@@ -6,6 +6,7 @@ declare interface IWp7WebPartStrings {
   FilterByTerm:string;
   ShowAll:string;
   listEmpty:string;
+  WaitPlease:string;
 }
 
 declare module 'Wp7WebPartStrings' {

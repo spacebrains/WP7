@@ -7,6 +7,7 @@ define([], function () {
     "ResultNotFound": "Result not found :(",
     "FilterByTerm": "Filtering by term",
     "ShowAll":"Show all",
-    "listEmpty":"List empty"
+    "listEmpty":"List empty",
+    "WaitPlease":"Wait, please :3"
   };
 });

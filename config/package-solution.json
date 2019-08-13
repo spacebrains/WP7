@@ -3,7 +3,7 @@
   "solution": {
     "name": "wp-7-client-side-solution",
     "id": "16c8678c-eb9f-469d-822a-18e99002f0f8",
-    "version": "2.0.0.3",
+    "version": "2.0.0.5",
     "includeClientSideAssets": true,
     "isDomainIsolated": false
   },
